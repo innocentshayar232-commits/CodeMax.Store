@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeMax Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    
+    <style>
+        body { background-color: #000000; color: #ffffff; font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
+        h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
+        .neon-text { text-shadow: 0 0 10px #00f2ff, 0 0 20px #7000ff; }
+        .neon-border { border: 1px solid #7000ff; box-shadow: 0 0 8px #7000ff; }
+        .neon-btn { background: linear-gradient(90deg, #00f2ff, #7000ff); transition: transform 0.2s ease; }
+        .neon-btn:active { transform: scale(0.95); }
+        .glass-nav { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); border-top: 1px solid #1a1a1a; }
+        .hidden { display: none; }
+        .fade-in { animation: fadeIn 0.4s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .welcome-animate { animation: slideUp 0.8s ease-out forwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        #full-view-page { position: fixed; inset: 0; background: black; z-index: 100; display: none; flex-direction: column; }
+        .support-card { background: linear-gradient(145deg, #111111, #080808); border: 1px solid #1a1a1a; }
+    </style>
+</head>
+<body>
+
+    <div id="intro-page" class="h-screen flex flex-col justify-center items-center p-8 text-center relative overflow-hidden">
+        <div class="absolute w-64 h-64 bg-blue-600/20 rounded-full blur-[120px] top-1/4 -left-20"></div>
+        <div class="absolute w-64 h-64 bg-purple-600/20 rounded-full blur-[120px] bottom-1/4 -right-20"></div>
+
+        <div class="relative z-10 welcome-animate">
+            <div class="w-32 h-32 mx-auto mb-8 neon-border rounded-3xl overflow-hidden p-1 bg-black/50 rotate-3 hover:rotate-0 transition-transform duration-500">
+                <img id="intro-logo" src="" class="w-full h-full object-cover rounded-2xl" onerror="this.src='https://via.placeholder.com/150'">
+            </div>
+            <p class="text-blue-400 font-bold tracking-[0.3em] uppercase text-xs mb-3">Welcome to the future</p>
+            <h1 class="text-5xl font-extrabold mb-4 tracking-tighter leading-none">CODEMAX<br><span class="neon-text text-white">STORE</span></h1>
+            <button onclick="showHome()" class="neon-btn group relative px-12 py-4 rounded-2xl font-black text-black uppercase tracking-widest overflow-hidden mt-6">
+                <span class="relative z-10">Enter Store</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="home-page" class="hidden pb-24">
+        <header class="p-4 flex justify-between items-center border-b border-zinc-900 sticky top-0 bg-black/80 backdrop-blur-md z-40">
+            <div class="flex items-center gap-3">
+                <img id="nav-logo" src="" class="w-10 h-10 rounded-xl border border-zinc-800">
+                <h2 class="text-lg font-bold neon-text leading-tight uppercase">CodeMax<br><span class="text-xs text-blue-400 font-medium">Official Store</span></h2>
+            </div>
+        </header>
+        <div class="grid grid-cols-2 gap-4 p-4" id="product-container"></div>
+    </div>
+
+    <div id="detail-page" class="hidden pb-24 fade-in">
+        <div class="p-4 sticky top-0 bg-black/80 backdrop-blur-md z-40 flex items-center">
+            <button onclick="handleBack()" class="text-blue-400 font-bold flex items-center gap-1 bg-blue-400/10 px-4 py-2 rounded-full border border-blue-400/20">Back</button>
+        </div>
+        <div id="detail-content"></div>
+    </div>
+
+    <div id="full-view-page" class="fade-in">
+        <div class="p-4 flex items-center justify-between border-b border-zinc-900 bg-black">
+            <button onclick="handleBack()" class="text-white font-bold flex items-center gap-2">Close</button>
+        </div>
+        <div class="flex-1 flex items-center justify-center p-4">
+            <img id="zoom-img" src="" class="max-w-full max-h-full object-contain rounded-xl">
+        </div>
+    </div>
+
+    <div id="profile-page" class="hidden p-6 text-center">
+        <div class="mt-10">
+            <div class="w-36 h-36 mx-auto rounded-3xl neon-border p-1 bg-black overflow-hidden rotate-3">
+                <img id="profile-img" src="" class="rounded-2xl w-full h-full object-cover">
+            </div>
+            <h2 class="text-2xl font-bold mt-6 uppercase">CodeMax Node</h2>
+        </div>
+        <div class="mt-10 space-y-4 text-left" id="social-links"></div>
+    </div>
+
+    <nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 glass-nav h-20 flex justify-around items-center px-6 z-50">
+        <button onclick="navigate('home')" id="home-btn" class="flex flex-col items-center text-blue-400 transition-all">
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <span class="text-[10px] mt-1 font-bold tracking-widest">HOME</span>
+        </button>
+        <button onclick="navigate('profile')" id="profile-btn" class="flex flex-col items-center text-zinc-500 transition-all">
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08s5.97 1.09 6 3.08c-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+            <span class="text-[10px] mt-1 font-bold tracking-widest">PROFILE</span>
+        </button>
+    </nav>
+
+    <script>
+        // NEW FIREBASE CONFIGURATION ADDED HERE
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0oGS7F0ntm_RMLb5yWYM1ujOM3qmIR5A",
+            authDomain: "codemax-store.firebaseapp.com",
+            databaseURL: "https://codemax-store-default-rtdb.firebaseio.com",
+            projectId: "codemax-store",
+            storageBucket: "codemax-store.firebasestorage.app",
+            messagingSenderId: "742491247217",
+            appId: "1:742491247217:web:06c87a58af4153a38ec1d0",
+            measurementId: "G-YCHXPYTW0C"
+        };
+
+        // Initializing Firebase (using compat mode for your logic)
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let products = [];
+        let adminContact = "8310272269";
+
+        // Navigation & Logic
+        window.addEventListener('popstate', function (event) {
+            if (event.state && event.state.page) { renderPage(event.state.page); } 
+            else { location.reload(); }
+        });
+
+        function handleBack() { window.history.back(); }
+
+        // Realtime Data: Settings
+        db.ref('settings').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                if(data.logo) {
+                    document.getElementById('intro-logo').src = data.logo;
+                    document.getElementById('nav-logo').src = data.logo;
+                    document.getElementById('profile-img').src = data.logo;
+                }
+                if(data.contact) adminContact = data.contact.replace(/\D/g,'');
+                document.getElementById('social-links').innerHTML = `
+                    <a href="tel:${data.contact || adminContact}" class="bg-zinc-900 p-4 rounded-xl flex justify-between border border-zinc-800"><span>Support Call</span><span class="text-blue-500">→</span></a>
+                    <a href="${data.youtube || '#'}" target="_blank" class="bg-zinc-900 p-4 rounded-xl flex justify-between border border-zinc-800"><span>Youtube Channel</span><span class="text-red-500">→</span></a>
+                    <a href="${data.instagram || '#'}" target="_blank" class="bg-zinc-900 p-4 rounded-xl flex justify-between border border-zinc-800"><span>Instagram</span><span class="text-pink-500">→</span></a>
+                `;
+            }
+        });
+
+        // Realtime Data: Products
+        db.ref('products').on('value', (snapshot) => {
+            const data = snapshot.val();
+            const container = document.getElementById('product-container');
+            if(data) {
+                products = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                container.innerHTML = products.reverse().map(p => `
+                    <div onclick="showDetails('${p.id}')" class="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 fade-in cursor-pointer active:scale-95 transition-all">
+                        <img src="${p.img}" class="w-full h-44 object-cover">
+                        <div class="p-3">
+                            <h3 class="text-[11px] font-bold truncate uppercase tracking-tight text-zinc-200">${p.name}</h3>
+                            <p class="text-blue-400 font-extrabold text-sm mb-2 mt-1">₹${p.price}</p>
+                            <div class="neon-btn w-full py-2 rounded-lg text-black text-[10px] font-bold uppercase text-center">View Details</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        });
+
+        function showHome() {
+            document.getElementById('intro-page').classList.add('hidden');
+            document.getElementById('home-page').classList.remove('hidden');
+            document.getElementById('bottom-nav').classList.remove('hidden');
+            window.history.replaceState({page: 'home'}, 'Home', '');
+        }
+
+        function showDetails(id) {
+            const product = products.find(p => p.id == id);
+            window.scrollTo(0,0);
+            window.history.pushState({page: 'detail'}, 'Detail', '');
+            renderPage('detail');
+            const allImages = [product.img, product.img2, product.img3, product.img4, product.img5].filter(u => u && u.length > 5);
+            document.getElementById('detail-content').innerHTML = `
+                <div class="w-full h-96 bg-black flex items-center justify-center p-4">
+                    <img src="${product.img}" class="max-w-full max-h-full object-contain rounded-2xl shadow-[0_0_30px_rgba(0,0,0,1)]">
+                </div>
+                <div class="flex justify-center gap-2 px-4 py-3 overflow-x-auto no-scrollbar">
+                    ${allImages.map((url) => `<div onclick="openFullView('${url}')" class="thumb-box w-14 h-14 rounded-lg overflow-hidden border border-zinc-800 flex-shrink-0 opacity-80"><img src="${url}" class="w-full h-full object-cover"></div>`).join('')}
+                </div>
+                <div class="p-6">
+                    <h1 class="text-2xl font-bold mb-1 uppercase tracking-tight">${product.name}</h1>
+                    <div class="flex items-center gap-2 mb-4"><p class="text-blue-400 text-3xl font-black">₹${product.price}</p></div>
+                    <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 mb-6 shadow-inner">
+                        <p class="text-zinc-300 text-sm leading-relaxed">${product.description || 'Premium quality.'}</p>
+                    </div>
+                    <button onclick="buyNow('${product.name}')" class="neon-btn w-full py-5 rounded-2xl text-black font-extrabold text-lg uppercase tracking-widest">Buy on WhatsApp</button>
+                </div>
+            `;
+        }
+
+        function openFullView(src) {
+            document.getElementById('zoom-img').src = src;
+            document.getElementById('full-view-page').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            window.history.pushState({page: 'fullview'}, 'Full View', '');
+        }
+
+        function buyNow(name) {
+            const message = `*CODEMAX STORE ORDER*\nHello! I want to buy: *${name}*`;
+            window.open(`https://wa.me/${adminContact}?text=${encodeURIComponent(message)}`, '_blank');
+        }
+
+        function navigate(page) {
+            window.history.pushState({page: page}, page, '');
+            renderPage(page);
+        }
+
+        function renderPage(page) {
+            document.getElementById('home-page').classList.add('hidden');
+            document.getElementById('profile-page').classList.add('hidden');
+            document.getElementById('detail-page').classList.add('hidden');
+            document.getElementById('full-view-page').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            document.getElementById('home-btn').className = "flex flex-col items-center text-zinc-500";
+            document.getElementById('profile-btn').className = "flex flex-col items-center text-zinc-500";
+            if (page === 'home') {
+                document.getElementById('home-page').classList.remove('hidden');
+                document.getElementById('home-btn').className = "flex flex-col items-center text-blue-400";
+            } else if (page === 'profile') {
+                document.getElementById('profile-page').classList.remove('hidden');
+                document.getElementById('profile-btn').className = "flex flex-col items-center text-blue-400";
+            } else if (page === 'detail') {
+                document.getElementById('detail-page').classList.remove('hidden');
+            } else if (page === 'fullview') {
+                document.getElementById('full-view-page').style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+    </script>
+</body>
+</html>
